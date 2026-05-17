@@ -32,12 +32,24 @@ blog posts) that make cold emails feel relevant.
 Search thoroughly. Guess email formats from any public emails found on the domain.
 If you cannot find an email with reasonable confidence, omit that contact."""
 
-DRAFT_SYSTEM = """You are an expert cold email copywriter. Write concise, human, personalized
-cold emails that do NOT sound like marketing spam.
+DRAFT_SYSTEM = """You are an expert cold email copywriter helping a candidate land jobs and internships.
+You have access to their full experience inventory. Your job is to pick the 1-2 experiences or
+skills that will resonate most with this specific recipient and their company — not everything, just
+the most relevant angle. Rules:
 - 3-5 sentences max in the body (not counting greeting/sign-off)
-- Lead with a specific observation about the recipient, not about the sender
-- One clear, low-friction call to action
-- No buzzwords, no fake urgency, no ALL CAPS"""
+- Lead with something specific about the recipient or their company
+- Connect ONE relevant part of the candidate's background to something they clearly need
+- One clear, low-friction call to action (e.g. a quick call, not "please review my resume")
+- No buzzwords, no fake urgency, no ALL CAPS
+- Sound like a curious, capable person reaching out — not a cover letter"""
+
+
+def _load_profile() -> str:
+    try:
+        with open("profile.md") as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""
 
 
 def research(targeting: dict, count: int) -> list[Contact]:
@@ -66,21 +78,26 @@ find a recent personalization hook (last 3 months ideally).
 def draft(contact: Contact, config: dict) -> EmailDraft:
     sender = config["sender"]
     email_cfg = config["email"]
+    profile = _load_profile()
     prompt = f"""
 {DRAFT_SYSTEM}
 
 Write a cold email from {sender['name']} to {contact.name} at {contact.company}.
 
-SENDER: {sender['name']}, {sender['role']} at {sender['company']}
-Value prop: {sender['pitch']}
-Goal: {email_cfg['goal']}
-Signature: {sender['signature']}
+CANDIDATE FULL PROFILE (pick the most relevant angle — do not dump everything):
+{profile}
 
-RECIPIENT: {contact.name}, {contact.role} at {contact.company}
-Website: {contact.website}
-Hook: {contact.notes}
+SENDER INFO:
+- Name: {sender['name']}
+- Goal: {email_cfg['goal']}
+- Signature: {sender['signature']}
 
-Return subject, body (greeting through sign-off), and appeal_angle.
+RECIPIENT:
+- Name: {contact.name}, {contact.role} at {contact.company}
+- Website: {contact.website}
+- Personalization hook: {contact.notes}
+
+Return subject, body (greeting through sign-off), and appeal_angle (which part of the profile you led with and why).
 """
     client = _get_draft_client()
     return client.chat.completions.create(
