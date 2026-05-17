@@ -41,6 +41,8 @@ def _load_profile() -> str:
     except FileNotFoundError:
         return ""
 
+_PROFILE = _load_profile()
+
 
 def research(targeting: dict, count: int) -> list[Contact]:
     prompt = f"""
@@ -69,7 +71,7 @@ find a recent personalization hook (last 3 months ideally).
 def draft(contact: Contact, config: dict) -> EmailDraft:
     sender = config["sender"]
     email_cfg = config["email"]
-    profile = _load_profile()
+    profile = _PROFILE
     prompt = f"""
 Write a cold email from {sender['name']} to {contact.name} at {contact.company}.
 
