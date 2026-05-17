@@ -1,0 +1,8 @@
+.env
+.claude
+token.json
+credentials.json
+cold_email.db
+config.json
+__pycache__/
+*.pyc

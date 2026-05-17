@@ -1,0 +1,38 @@
+{
+  "sender": {
+    "name": "YOUR_FULL_NAME",
+    "email": "YOUR_GMAIL_ADDRESS",
+    "role": "YOUR_ROLE_OR_TITLE",
+    "company": "YOUR_COMPANY_OR_PROJECT",
+    "pitch": "ONE_SENTENCE_VALUE_PROP",
+    "website": "YOUR_WEBSITE_OR_LINKEDIN",
+    "signature": "Best,\nYOUR_NAME\nYOUR_TITLE | YOUR_COMPANY\nYOUR_WEBSITE"
+  },
+  "targeting": {
+    "description": "DESCRIBE YOUR IDEAL TARGET (e.g. 'SaaS startup founders in the US with 1-20 employees')",
+    "industries": ["INDUSTRY_1", "INDUSTRY_2"],
+    "roles": ["CEO", "Founder", "CTO"],
+    "keywords": ["KEYWORD_1", "KEYWORD_2"],
+    "exclude_keywords": ["enterprise", "agency"],
+    "geography": "United States"
+  },
+  "email": {
+    "subject_template": "Quick question about {company}",
+    "goal": "WHAT YOU WANT (e.g. 'book a 15-minute intro call')"
+  },
+  "scheduling": {
+    "interval_hours": 24,
+    "emails_per_run": 10,
+    "send_time": "09:00",
+    "timezone": "America/Chicago"
+  },
+  "limits": {
+    "daily_max": 50,
+    "skip_if_already_contacted": true
+  },
+  "provider": "anthropic",
+  "campaign_label": "campaign-1",
+  "google_sheets": {
+    "sheets_id": ""
+  }
+}
