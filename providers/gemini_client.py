@@ -55,6 +55,7 @@ _PROFILE = _load_profile()
 
 
 def research(targeting: dict, count: int) -> list[Contact]:
+    search_guidance = targeting.get("_search_guidance", "")
     prompt = f"""
 {RESEARCH_SYSTEM}
 
@@ -65,7 +66,7 @@ Find {count} real contacts matching this profile:
 - Keywords: {', '.join(targeting['keywords'])}
 - Geography: {targeting['geography']}
 - Exclude: {', '.join(targeting.get('exclude_keywords', []))}
-
+{search_guidance}
 For each contact: search for the company, find the right person, find their email,
 find a recent personalization hook (last 3 months ideally).
 """

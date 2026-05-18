@@ -30,6 +30,11 @@
     "daily_max": 50,
     "skip_if_already_contacted": true
   },
+  "search_operators": {
+    "prefer_sites": ["linkedin.com", "crunchbase.com", "techcrunch.com", "ycombinator.com"],
+    "exclude_sites": ["reddit.com", "quora.com", "glassdoor.com", "medium.com", "stackoverflow.com"],
+    "exclude_terms": ["job posting", "how to", "tutorial", "course", "review"]
+  },
   "provider": "anthropic",
   "campaign_label": "campaign-1",
   "google_sheets": {
