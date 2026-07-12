@@ -28,7 +28,8 @@
   },
   "limits": {
     "daily_max": 50,
-    "skip_if_already_contacted": true
+    "skip_if_already_contacted": true,
+    "verify_emails": true
   },
   "search_operators": {
     "prefer_sites": ["linkedin.com", "crunchbase.com", "techcrunch.com", "ycombinator.com"],

@@ -211,6 +211,27 @@ def add_to_blocklist(email, reason="unsubscribed"):
         """, (email.lower(), reason))
 
 
+def get_researched_companies(campaign=None, limit=100):
+    """Most recently researched companies, used to steer the LLM away from re-searching them
+    and to hard-filter any duplicates it returns anyway."""
+    with get_conn() as conn:
+        if campaign:
+            rows = conn.execute(
+                """SELECT DISTINCT company FROM contacts
+                   WHERE campaign=? AND company != ''
+                   ORDER BY researched_at DESC LIMIT ?""",
+                (campaign, limit)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT DISTINCT company FROM contacts
+                   WHERE company != ''
+                   ORDER BY researched_at DESC LIMIT ?""",
+                (limit,)
+            ).fetchall()
+        return [r[0] for r in rows]
+
+
 def already_contacted(email):
     with get_conn() as conn:
         row = conn.execute(

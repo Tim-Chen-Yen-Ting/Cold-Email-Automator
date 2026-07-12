@@ -18,7 +18,7 @@ def load_config():
         raise FileNotFoundError(
             "config.json not found. Copy config.example.json → config.json and fill in your details."
         )
-    with open("config.json") as f:
+    with open("config.json", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -50,16 +50,19 @@ def run_research_and_draft(config: dict, count: int = 10):
             continue
 
         # Verify email (use cached result if available)
-        cached = db.get_verification(email)
-        if cached:
-            status = cached
-        else:
-            status = verify.verify_email(email)
-            db.save_verification(email, status)
+        if config["limits"].get("verify_emails", True):
+            cached = db.get_verification(email)
+            if cached:
+                status = cached
+            else:
+                status = verify.verify_email(email)
+                db.save_verification(email, status)
 
-        if not verify.is_sendable(status):
-            print(f"[pipeline] Skipping {email} — verification: {status}")
-            continue
+            if not verify.is_sendable(status):
+                print(f"[pipeline] Skipping {email} — verification: {status}")
+                continue
+        else:
+            print(f"[pipeline] Verification disabled — skipping check for {email}")
 
         # Draft email
         print(f"[pipeline] Drafting email for {name} at {company}...")

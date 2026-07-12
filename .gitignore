@@ -1,7 +1,6 @@
 .env
 .claude
 profile.md
-profile_technical.md
 token.json
 credentials.json
 cold_email.db

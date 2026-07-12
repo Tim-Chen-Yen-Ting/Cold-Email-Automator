@@ -46,7 +46,7 @@ the most relevant angle. Rules:
 
 def _load_profile() -> str:
     try:
-        with open("profile.md") as f:
+        with open("profile.md", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return ""

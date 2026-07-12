@@ -53,7 +53,7 @@ def sync(config: dict):
         sheets_id = _create_sheet(service)
         # Persist to config
         config.setdefault("google_sheets", {})["sheets_id"] = sheets_id
-        with open("config.json", "w") as f:
+        with open("config.json", "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
         print(f"[sheets] Saved sheets_id to config.json: {sheets_id}")
 

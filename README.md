@@ -10,6 +10,8 @@ Claude AI research → Email verification (Reoon) → Claude AI drafting → Gma
 
 Each cycle Claude searches the web to find contacts matching your target profile, guesses and verifies their emails, writes a personalized email using a specific hook (recent news, product launch, etc.), then sends and tracks everything.
 
+To avoid re-researching the same companies across runs, each research call is told to skip the 100 most recently researched companies in the DB, and any duplicates it returns anyway are filtered out before drafting.
+
 ## Features
 
 - AI-driven contact research — no database subscription needed
@@ -57,6 +59,7 @@ Edit `config.json` with your details:
 - `targeting` — who you want to reach (industries, roles, keywords)
 - `email` — subject template and goal of the outreach
 - `scheduling` — when and how often to send
+- `limits.verify_emails` — `true` (default) skips any email Reoon flags as undeliverable before drafting; set to `false` to skip verification entirely (useful for testing research/drafting without a Reoon key). With verification off, unverified emails are still drafted and sent as normal — there's no separate send-time check
 
 ### 3. Choose your AI provider
 
@@ -79,7 +82,7 @@ Fill in only the key(s) for your chosen provider:
 ANTHROPIC_API_KEY=your_key_here   # anthropic
 OPENAI_API_KEY=your_key_here      # openai
 GEMINI_API_KEY=your_key_here      # gemini
-REOON_API_KEY=your_key_here       # always required
+REOON_API_KEY=your_key_here       # only required if limits.verify_emails is true (see below)
 ```
 
 - Anthropic API: [console.anthropic.com](https://console.anthropic.com)
@@ -87,7 +90,9 @@ REOON_API_KEY=your_key_here       # always required
 - Gemini API: [aistudio.google.com](https://aistudio.google.com)
 - Reoon: [emailverifier.reoon.com](https://emailverifier.reoon.com)
 
-### 4. Set up Gmail + Google Sheets
+Note: provider API keys can also be picked up from your OS environment if already set there — `.env` is only needed if they aren't.
+
+### 5. Set up Gmail + Google Sheets
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a project
@@ -103,7 +108,7 @@ python setup_gmail.py
 
 A browser window will open. Authorize access. A `token.json` will be saved automatically.
 
-### 5. Test manually
+### 6. Test manually
 
 ```bash
 python main.py status        # show database stats
@@ -112,7 +117,7 @@ python main.py send          # send pending drafts
 python main.py run           # full cycle: research + draft + send
 ```
 
-### 6. Start the scheduler
+### 7. Start the scheduler
 
 ```bash
 python scheduler.py

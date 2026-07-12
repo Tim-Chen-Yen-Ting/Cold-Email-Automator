@@ -4,6 +4,7 @@ import instructor
 from models import Contact, ContactList, EmailDraft
 
 _client = None
+_raw_client = None
 
 
 def _get_client():
@@ -13,6 +14,13 @@ def _get_client():
             openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
         )
     return _client
+
+
+def _get_raw_client():
+    global _raw_client
+    if not _raw_client:
+        _raw_client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    return _raw_client
 
 
 RESEARCH_SYSTEM = """You are a B2B sales researcher. Find real people matching a target profile,
@@ -36,7 +44,7 @@ the most relevant angle. Rules:
 
 def _load_profile() -> str:
     try:
-        with open("profile.md") as f:
+        with open("profile.md", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
         return ""
@@ -58,12 +66,25 @@ Find {count} real contacts matching this profile:
 For each contact: search for the company, find the right person, find their email,
 find a recent personalization hook (last 3 months ideally).
 """
-    client = _get_client()
-    return client.chat.completions.create(
+    # gpt-4o-search-preview doesn't support function/tool calling, so it can't
+    # produce structured output directly — do the web search in plain text first,
+    # then extract structured contacts from that text with a regular model.
+    raw_client = _get_raw_client()
+    search_result = raw_client.chat.completions.create(
         model="gpt-4o-search-preview",
         messages=[
             {"role": "system", "content": RESEARCH_SYSTEM},
             {"role": "user", "content": prompt},
+        ],
+    )
+    findings = search_result.choices[0].message.content
+
+    client = _get_client()
+    return client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "Extract structured contact records from the research findings below."},
+            {"role": "user", "content": findings},
         ],
         response_model=ContactList,
     ).contacts
