@@ -25,21 +25,27 @@ def load_config():
 
 
 def main_job():
-    config = load_config()
-    print(f"\n{'='*50}")
-    print("Scheduled run: research + draft + send")
-    print(f"{'='*50}")
-    pipeline.run_full_cycle(config)
-    sheets_sync.sync(config)
+    try:
+        config = load_config()
+        print(f"\n{'='*50}")
+        print("Scheduled run: research + draft + send")
+        print(f"{'='*50}")
+        pipeline.run_full_cycle(config)
+        sheets_sync.sync(config)
+    except Exception as e:
+        print(f"[scheduler] main_job failed, will retry next scheduled run: {e}")
 
 
 def check_job():
-    config = load_config()
-    print(f"\n{'='*50}")
-    print("Scheduled run: bounce + reply check")
-    print(f"{'='*50}")
-    bounce_reply.run_all()
-    sheets_sync.sync(config)
+    try:
+        config = load_config()
+        print(f"\n{'='*50}")
+        print("Scheduled run: bounce + reply check")
+        print(f"{'='*50}")
+        bounce_reply.run_all()
+        sheets_sync.sync(config)
+    except Exception as e:
+        print(f"[scheduler] check_job failed, will retry next scheduled run: {e}")
 
 
 if __name__ == "__main__":
