@@ -235,7 +235,7 @@ def get_researched_companies(campaign=None, limit=100):
 def already_contacted(email):
     with get_conn() as conn:
         row = conn.execute(
-            """SELECT id FROM emails e
+            """SELECT e.id FROM emails e
                JOIN contacts c ON c.id=e.contact_id
                WHERE c.email=? AND e.status='sent'""",
             (email,)
