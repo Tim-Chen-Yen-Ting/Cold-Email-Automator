@@ -11,7 +11,7 @@ def _get_client():
     global _client
     if not _client:
         _client = instructor.from_openai(
-            openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+            openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"], max_retries=6)
         )
     return _client
 
@@ -19,7 +19,7 @@ def _get_client():
 def _get_raw_client():
     global _raw_client
     if not _raw_client:
-        _raw_client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        _raw_client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"], max_retries=6)
     return _raw_client
 
 
@@ -39,7 +39,10 @@ the most relevant angle. Rules:
 - Connect ONE relevant part of the candidate's background to something they clearly need
 - One clear, low-friction call to action (e.g. a quick call, not "please review my resume")
 - No buzzwords, no fake urgency, no ALL CAPS
-- Sound like a curious, capable person reaching out — not a cover letter"""
+- Sound like a curious, capable person reaching out — not a cover letter
+- Plain text only — this is sent as a plain-text email, not rendered markdown. Never use
+  markdown link syntax like [text](url), bold/italic markers, or bullet characters. Write
+  URLs and the signature exactly as given, verbatim, with no reformatting."""
 
 
 def _load_profile() -> str:
@@ -66,18 +69,16 @@ Find {count} real contacts matching this profile:
 For each contact: search for the company, find the right person, find their email,
 find a recent personalization hook (last 3 months ideally).
 """
-    # gpt-4o-search-preview doesn't support function/tool calling, so it can't
-    # produce structured output directly — do the web search in plain text first,
-    # then extract structured contacts from that text with a regular model.
+    # The Responses API's web_search tool doesn't produce structured output directly —
+    # do the web search in plain text first, then extract structured contacts below.
     raw_client = _get_raw_client()
-    search_result = raw_client.chat.completions.create(
-        model="gpt-4o-search-preview",
-        messages=[
-            {"role": "system", "content": RESEARCH_SYSTEM},
-            {"role": "user", "content": prompt},
-        ],
+    search_result = raw_client.responses.create(
+        model="gpt-5",
+        tools=[{"type": "web_search"}],
+        instructions=RESEARCH_SYSTEM,
+        input=prompt,
     )
-    findings = search_result.choices[0].message.content
+    findings = search_result.output_text
 
     client = _get_client()
     return client.chat.completions.create(

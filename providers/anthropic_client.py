@@ -31,7 +31,10 @@ the most relevant angle. Rules:
 - Connect ONE relevant part of the candidate's background to something they clearly need
 - One clear, low-friction call to action (e.g. a quick call, not "please review my resume")
 - No buzzwords, no fake urgency, no ALL CAPS
-- Sound like a curious, capable person reaching out — not a cover letter"""
+- Sound like a curious, capable person reaching out — not a cover letter
+- Plain text only — this is sent as a plain-text email, not rendered markdown. Never use
+  markdown link syntax like [text](url), bold/italic markers, or bullet characters. Write
+  URLs and the signature exactly as given, verbatim, with no reformatting."""
 
 
 def _load_profile() -> str:
