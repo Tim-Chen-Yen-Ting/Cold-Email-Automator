@@ -5,11 +5,15 @@ Run setup_gmail.py once to generate token.json before using this.
 
 import os
 import base64
+import httplib2
+import socks
+from urllib.parse import urlparse
 from email.mime.text import MIMEText
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_httplib2 import AuthorizedHttp
 from googleapiclient.discovery import build
 
 SCOPES = [
@@ -19,6 +23,27 @@ SCOPES = [
 ]
 
 _service_cache = None
+
+
+def _authorized_http(creds):
+    """httplib2 (unlike requests/httpx) doesn't read the Windows system proxy automatically —
+    build it explicitly so Gmail/Sheets calls route through a local proxy (e.g. Hiddify) when
+    one is configured. Uses a dedicated GOOGLE_API_PROXY var rather than the generic HTTP_PROXY/
+    HTTPS_PROXY names, since those are also picked up by httpx (used for OpenAI calls) and would
+    reroute unrelated traffic through the same proxy."""
+    proxy_url = os.environ.get("GOOGLE_API_PROXY")
+    http = None
+    if proxy_url:
+        parsed = urlparse(proxy_url)
+        proxy_info = httplib2.ProxyInfo(
+            proxy_type=socks.PROXY_TYPE_HTTP,
+            proxy_host=parsed.hostname,
+            proxy_port=parsed.port,
+        )
+        http = httplib2.Http(proxy_info=proxy_info)
+    else:
+        http = httplib2.Http()
+    return AuthorizedHttp(creds, http=http)
 
 
 def get_service():
@@ -42,7 +67,7 @@ def get_service():
         with open(token_path, "w") as f:
             f.write(creds.to_json())
 
-    _service_cache = build("gmail", "v1", credentials=creds)
+    _service_cache = build("gmail", "v1", http=_authorized_http(creds))
     return _service_cache
 
 

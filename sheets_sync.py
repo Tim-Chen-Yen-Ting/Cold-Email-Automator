@@ -19,7 +19,7 @@ HEADERS = [
 
 def _get_sheets_service():
     creds = gmail_sender.get_service()._http.credentials
-    return build("sheets", "v4", credentials=creds)
+    return build("sheets", "v4", http=gmail_sender._authorized_http(creds))
 
 
 def _create_sheet(service, title="Cold Email Tracker") -> str:
