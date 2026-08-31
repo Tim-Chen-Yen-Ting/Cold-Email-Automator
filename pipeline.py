@@ -4,6 +4,7 @@ Called by scheduler or manually via main.py.
 """
 
 import json
+import time
 
 import database as db
 import research
@@ -22,8 +23,57 @@ def load_config():
         return json.load(f)
 
 
+def _bucket_config(config: dict, bucket: dict) -> dict:
+    """Build a per-bucket config with 'targeting'/'email'/'campaign_label' set from the bucket."""
+    bucket_config = dict(config)
+    bucket_config["targeting"] = {
+        "description": bucket["description"],
+        "industries": bucket.get("industries", []),
+        "roles": bucket.get("roles", []),
+        "keywords": bucket.get("keywords", []),
+        "exclude_keywords": bucket.get("exclude_keywords", []),
+        "geography": bucket.get("geography", ""),
+    }
+    bucket_config["email"] = {
+        "subject_template": bucket.get("subject_template", "Quick question about {company}"),
+        "goal": bucket["email_goal"],
+    }
+    base_campaign = config.get("campaign_label", "default")
+    bucket_config["campaign_label"] = f"{base_campaign}-{bucket['label']}"
+    return bucket_config
+
+
 def run_research_and_draft(config: dict, count: int = 10):
-    """Research new contacts, verify emails, draft emails, store in DB."""
+    """Research new contacts across all targeting buckets, splitting the quota between them,
+    then verify emails, draft emails, and store in DB."""
+    buckets = config["targeting_buckets"]
+    counts = _split_count(count, len(buckets))
+
+    total_drafted = 0
+    for i, (bucket, bucket_count) in enumerate(zip(buckets, counts)):
+        if bucket_count <= 0:
+            continue
+        if i > 0:
+            # Space out research calls between buckets so back-to-back gpt-5 + web_search
+            # calls don't stack into one token-per-minute burst.
+            time.sleep(20)
+        bucket_config = _bucket_config(config, bucket)
+        try:
+            total_drafted += _research_and_draft_bucket(bucket_config, bucket_count)
+        except Exception as e:
+            print(f"[pipeline] Bucket '{bucket['label']}' failed, skipping: {e}")
+
+    print(f"[pipeline] Done. {total_drafted} drafts created across {len(buckets)} bucket(s).")
+    return total_drafted
+
+
+def _split_count(count: int, num_buckets: int) -> list[int]:
+    """Split `count` as evenly as possible across `num_buckets`, remainder to the first buckets."""
+    base, remainder = divmod(count, num_buckets)
+    return [base + (1 if i < remainder else 0) for i in range(num_buckets)]
+
+
+def _research_and_draft_bucket(config: dict, count: int) -> int:
     campaign = config.get("campaign_label", "default")
     print(f"\n[pipeline] Researching {count} contacts (campaign: {campaign})...")
     contacts = research.research_contacts(config, count=count)
@@ -86,7 +136,6 @@ def run_research_and_draft(config: dict, count: int = 10):
         print(f"[pipeline] Draft saved for {name} <{email}> | angle: {appeal_angle}")
         drafted += 1
 
-    print(f"[pipeline] Done. {drafted} drafts created.")
     return drafted
 
 

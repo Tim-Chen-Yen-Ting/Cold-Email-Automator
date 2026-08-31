@@ -8,18 +8,30 @@
     "website": "YOUR_WEBSITE_OR_LINKEDIN",
     "signature": "Best,\nYOUR_NAME\nYOUR_TITLE | YOUR_COMPANY\nYOUR_WEBSITE"
   },
-  "targeting": {
-    "description": "DESCRIBE YOUR IDEAL TARGET (e.g. 'SaaS startup founders in the US with 1-20 employees')",
-    "industries": ["INDUSTRY_1", "INDUSTRY_2"],
-    "roles": ["CEO", "Founder", "CTO"],
-    "keywords": ["KEYWORD_1", "KEYWORD_2"],
-    "exclude_keywords": ["enterprise", "agency"],
-    "geography": "United States"
-  },
-  "email": {
-    "subject_template": "Quick question about {company}",
-    "goal": "WHAT YOU WANT (e.g. 'book a 15-minute intro call')"
-  },
+  "targeting_buckets": [
+    {
+      "label": "BUCKET_1_LABEL (e.g. 'startup-founders')",
+      "description": "DESCRIBE THIS BUCKET'S TARGET (e.g. 'SaaS startup founders in the US with 1-20 employees')",
+      "industries": ["INDUSTRY_1", "INDUSTRY_2"],
+      "roles": ["CEO", "Founder", "CTO"],
+      "keywords": ["KEYWORD_1", "KEYWORD_2"],
+      "exclude_keywords": ["enterprise", "agency"],
+      "geography": "United States",
+      "subject_template": "Quick question about {company}",
+      "email_goal": "WHAT YOU WANT FROM THIS BUCKET (e.g. 'book a 15-minute intro call')"
+    },
+    {
+      "label": "BUCKET_2_LABEL (e.g. 'eng-referral')",
+      "description": "DESCRIBE A SECOND, DIFFERENT TARGET AUDIENCE (e.g. 'engineers at established companies for referrals')",
+      "industries": ["INDUSTRY_1"],
+      "roles": ["Software Engineer", "Engineering Manager"],
+      "keywords": ["KEYWORD_1"],
+      "exclude_keywords": ["staffing agency"],
+      "geography": "United States",
+      "subject_template": "Quick question about the {company} team",
+      "email_goal": "WHAT YOU WANT FROM THIS BUCKET (e.g. 'ask about a referral')"
+    }
+  ],
   "scheduling": {
     "interval_hours": 24,
     "emails_per_run": 10,
