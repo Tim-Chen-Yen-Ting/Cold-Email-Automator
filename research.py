@@ -31,8 +31,8 @@ def _build_search_guidance(config: dict, exclude_companies: list[str]) -> str:
 
 
 def research_contacts(config: dict, count: int = 10) -> list[Contact]:
-    provider = get_provider(config)
-    print(f"[research] Using provider: {config.get('provider', 'anthropic')}")
+    provider = get_provider(config, role="research")
+    print(f"[research] Using provider: {config.get('research_provider') or config.get('provider', 'anthropic')}")
 
     # Steer the LLM away from re-searching companies already in the DB
     campaign = config.get("campaign_label")

@@ -49,6 +49,8 @@
     "exclude_terms": ["job posting", "how to", "tutorial", "course", "review"]
   },
   "provider": "anthropic",
+  "research_provider": "PROVIDER_FOR_SEARCH_STEP (optional, overrides 'provider' — e.g. 'gemini' for a cheap search-grounded model)",
+  "draft_provider": "PROVIDER_FOR_DRAFTING_STEP (optional, overrides 'provider' — e.g. 'openai' for a stronger writing model)",
   "campaign_label": "campaign-1",
   "google_sheets": {
     "sheets_id": ""

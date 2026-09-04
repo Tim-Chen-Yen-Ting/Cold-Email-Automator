@@ -14,8 +14,13 @@ _PROVIDERS = {
 }
 
 
-def get_provider(config: dict):
-    name = config.get("provider", "anthropic").lower()
+def get_provider(config: dict, role: str = None):
+    """role: 'research' or 'draft' to use a per-role override (research_provider /
+    draft_provider), falling back to the default 'provider' if unset."""
+    name = None
+    if role:
+        name = config.get(f"{role}_provider")
+    name = (name or config.get("provider", "anthropic")).lower()
     if name not in _PROVIDERS:
         raise ValueError(f"Unknown provider '{name}'. Choose from: {list(_PROVIDERS)}")
     import importlib
