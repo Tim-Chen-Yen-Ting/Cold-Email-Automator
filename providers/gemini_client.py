@@ -1,28 +1,45 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import instructor
 from models import Contact, ContactList, EmailDraft
 
-_client = None
+_raw_client = None    # billed key — only the grounded search call needs this
+_light_client = None  # free-tier key — structured extraction + drafting, no grounding involved
+_light_instructor_client = None
+
+RESEARCH_MODEL = "gemini-3.6-flash"
+DRAFT_MODEL = "gemini-3.6-flash"
 
 
-def _get_client():
-    global _client
-    if not _client:
-        genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            tools="google_search_retrieval",  # built-in grounded search
-        )
-        _client = instructor.from_gemini(model, mode=instructor.Mode.GEMINI_JSON)
-    return _client
+def _search_api_key() -> str:
+    return os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]
 
 
-def _get_draft_client():
-    # Draft doesn't need search grounding
-    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-    model = genai.GenerativeModel(model_name="gemini-2.0-flash")
-    return instructor.from_gemini(model, mode=instructor.Mode.GEMINI_JSON)
+def _light_api_key() -> str:
+    # Falls back to the search key if no separate free-tier key is configured.
+    return os.environ.get("GEMINI_DRAFT_API_KEY") or _search_api_key()
+
+
+def _get_raw_client():
+    global _raw_client
+    if not _raw_client:
+        _raw_client = genai.Client(api_key=_search_api_key())
+    return _raw_client
+
+
+def _get_light_client():
+    global _light_client
+    if not _light_client:
+        _light_client = genai.Client(api_key=_light_api_key())
+    return _light_client
+
+
+def _get_instructor_client():
+    global _light_instructor_client
+    if not _light_instructor_client:
+        _light_instructor_client = instructor.from_genai(_get_light_client(), mode=instructor.Mode.GENAI_TOOLS)
+    return _light_instructor_client
 
 
 RESEARCH_SYSTEM = """You are a B2B sales researcher. Find real people matching a target profile,
@@ -60,8 +77,6 @@ _PROFILE = _load_profile()
 def research(targeting: dict, count: int) -> list[Contact]:
     search_guidance = targeting.get("_search_guidance", "")
     prompt = f"""
-{RESEARCH_SYSTEM}
-
 Find {count} real contacts matching this profile:
 - Description: {targeting['description']}
 - Industries: {', '.join(targeting['industries'])}
@@ -73,12 +88,26 @@ Find {count} real contacts matching this profile:
 For each contact: search for the company, find the right person, find their email,
 find a recent personalization hook (last 3 months ideally).
 """
-    client = _get_client()
-    result = client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        response_model=ContactList,
+    # Grounded search doesn't reliably combine with forced structured output —
+    # do the web search in plain text first, then extract structured contacts below.
+    raw_client = _get_raw_client()
+    search_result = raw_client.models.generate_content(
+        model=RESEARCH_MODEL,
+        contents=f"{RESEARCH_SYSTEM}\n\n{prompt}",
+        config=types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+        ),
     )
-    return result.contacts
+    findings = search_result.text
+
+    client = _get_instructor_client()
+    return client.chat.completions.create(
+        model=RESEARCH_MODEL,
+        messages=[
+            {"role": "user", "content": f"Extract structured contact records from the research findings below.\n\n{findings}"},
+        ],
+        response_model=ContactList,
+    ).contacts
 
 
 def draft(contact: Contact, config: dict) -> EmailDraft:
@@ -105,8 +134,9 @@ RECIPIENT:
 
 Return subject, body (greeting through sign-off), and appeal_angle (which part of the profile you led with and why).
 """
-    client = _get_draft_client()
+    client = _get_instructor_client()
     return client.chat.completions.create(
+        model=DRAFT_MODEL,
         messages=[{"role": "user", "content": prompt}],
         response_model=EmailDraft,
     )
