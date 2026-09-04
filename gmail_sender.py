@@ -23,6 +23,7 @@ SCOPES = [
 ]
 
 _service_cache = None
+_verified_account = None
 
 
 def _authorized_http(creds):
@@ -46,35 +47,48 @@ def _authorized_http(creds):
     return AuthorizedHttp(creds, http=http)
 
 
-def get_service():
-    global _service_cache
-    if _service_cache:
-        return _service_cache
+def get_service(expected_email: str = None):
+    global _service_cache, _verified_account
+    if not _service_cache:
+        creds_path = os.environ.get("GMAIL_CREDENTIALS_PATH", "credentials.json")
+        token_path = os.environ.get("GMAIL_TOKEN_PATH", "token.json")
 
-    creds_path = os.environ.get("GMAIL_CREDENTIALS_PATH", "credentials.json")
-    token_path = os.environ.get("GMAIL_TOKEN_PATH", "token.json")
+        creds = None
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
 
-    creds = None
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open(token_path, "w") as f:
+                f.write(creds.to_json())
 
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(token_path, "w") as f:
-            f.write(creds.to_json())
+        _service_cache = build("gmail", "v1", http=_authorized_http(creds))
 
-    _service_cache = build("gmail", "v1", http=_authorized_http(creds))
+    # Gmail sends as whichever account the token belongs to, regardless of the
+    # message's From header — verify it matches config once per process so a stale
+    # or wrong-account token fails loudly instead of silently mis-sending.
+    if expected_email and _verified_account != expected_email:
+        profile = _service_cache.users().getProfile(userId="me").execute()
+        actual = profile["emailAddress"]
+        if actual.lower() != expected_email.lower():
+            raise RuntimeError(
+                f"Gmail token.json is authenticated as {actual}, but config.json sender.email "
+                f"is {expected_email}. Re-run setup_gmail.py signed into {expected_email} "
+                f"(use an incognito window to avoid the wrong account being picked)."
+            )
+        _verified_account = actual
+
     return _service_cache
 
 
 def send_email(to_email: str, to_name: str, subject: str, body: str, from_email: str) -> str | None:
     """Send email. Returns thread_id on success, None on failure."""
     try:
-        service = get_service()
+        service = get_service(expected_email=from_email)
 
         message = MIMEText(body, "plain")
         message["to"] = f"{to_name} <{to_email}>"
